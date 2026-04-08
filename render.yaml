@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: tally-dashboard
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:npg_4vZrz9mCTfgO@ep-silent-bonus-a8buxxhi-pooler.eastus2.azure.neon.tech/neondb?sslmode=require
+      - key: PYTHON_VERSION
+        value: "3.11.4"

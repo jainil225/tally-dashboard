@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tally Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root[data-theme="dark"]{--bg:#0f1117;--panel:#161922;--border:#252836;--hdr:#1a1f2e;--text:#e2e8f0;--sub:#64748b;--muted:#334155;--accent:#1e6bc4;--accent2:#2563eb;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--cyan:#06b6d4;--row:rgba(255,255,255,.02);--hov:rgba(255,255,255,.05);--div:#1e2538;--top:#1e3a6b;--shadow:rgba(0,0,0,.5);--modal:rgba(0,0,0,.85);}
+:root[data-theme="light"]{--bg:#eef0f5;--panel:#fff;--border:#d1d5db;--hdr:#e8edf5;--text:#1e293b;--sub:#64748b;--muted:#94a3b8;--accent:#1d4ed8;--accent2:#1e40af;--green:#16a34a;--red:#dc2626;--amber:#d97706;--cyan:#0891b2;--row:#f8fafc;--hov:#eff6ff;--div:#e2e8f0;--top:#1d4ed8;--shadow:rgba(0,0,0,.15);--modal:rgba(0,0,0,.6);}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;}
+body{background:var(--bg);color:var(--text);min-height:100vh;}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+/* TOP BAR */
+#topbar{background:var(--top);height:36px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:2px solid rgba(255,255,255,.15);position:sticky;top:0;z-index:200;}
+#topbar .title{font-size:13px;font-weight:800;color:#fff;letter-spacing:.05em;}
+.tb-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:4px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;transition:.15s;}
+.tb-btn:hover{background:rgba(255,255,255,.25);}
+.tb-btn svg{width:12px;height:12px;}
+/* SUBBAR */
+#subbar{background:var(--hdr);border-bottom:1px solid var(--border);padding:4px 14px;display:flex;align-items:center;gap:12px;font-size:12px;flex-wrap:wrap;}
+#subbar .lbl{color:var(--sub);}#subbar .val{color:var(--accent);font-weight:700;}
+/* COMPANY SELECT */
+.co-wrap{position:relative;}
+#co-btn{display:flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);border-radius:4px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;min-width:160px;}
+#co-btn svg{width:12px;height:12px;}#co-btn .chev{margin-left:auto;}
+#co-dd{display:none;position:absolute;top:calc(100%+3px);left:0;width:220px;background:var(--panel);border:1px solid var(--border);border-radius:4px;box-shadow:0 8px 24px var(--shadow);z-index:300;}
+#co-dd.open{display:block;}
+.co-opt{padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--div);color:var(--text);transition:.1s;}
+.co-opt:hover{background:var(--hov);}
+.co-opt.active{color:var(--accent);font-weight:700;background:rgba(30,107,196,.1);}
+/* LAYOUT */
+#content{padding:8px 12px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;}
+.grid-132{display:grid;grid-template-columns:1fr 3fr 2fr;gap:8px;margin-bottom:8px;}
+.full{margin-bottom:8px;}
+/* PANEL */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.ph{background:var(--accent);padding:5px 10px;display:flex;align-items:center;justify-content:space-between;cursor:default;}
+.ph-click{cursor:pointer;transition:.15s;}.ph-click:hover{background:var(--accent2);}.ph-click:hover .ph-t::after{content:' →';opacity:.7;}
+.ph-t{font-size:11px;font-weight:700;color:#fff;letter-spacing:.03em;}
+.ph-s{font-size:10px;color:rgba(255,255,255,.7);}
+.pb{padding:10px 12px;}
+/* TABLE */
+.th-row{display:flex;padding:4px 6px;background:var(--hdr);border-bottom:2px solid var(--border);margin-bottom:2px;}
+.th-row span{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;}
+.tr{display:flex;justify-content:space-between;align-items:center;padding:5px 6px;border-bottom:1px solid var(--div);cursor:default;transition:.1s;}
+.tr:hover{background:var(--hov);}.tr:nth-child(even){background:var(--row);}.tr:nth-child(even):hover{background:var(--hov);}
+.tr .lb{font-size:12px;color:var(--text);}.tr .vl{font-size:12px;font-weight:600;font-family:monospace;}
+.tr.bold .lb{font-weight:700;}.tr.bold .vl{font-weight:700;}
+.tdiv{border-top:2px solid var(--border);margin:5px 0 4px;}
+/* KPI */
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.kpi{padding:8px 10px;border-radius:4px;border:1px solid var(--border);background:var(--hdr);}
+.kpi-l{font-size:9px;color:var(--sub);margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em;}
+.kpi-v{font-size:15px;font-weight:700;font-family:monospace;}
+.kpi-c{font-size:10px;margin-top:1px;}
+/* COLORS */
+.green{color:var(--green)!important;}.red{color:var(--red)!important;}.amber{color:var(--amber)!important;}.accent{color:var(--accent)!important;}.cyan{color:var(--cyan)!important;}
+/* TOP10 */
+.t10-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.t10-title{font-size:11px;font-weight:700;padding-bottom:3px;border-bottom:1px solid var(--border);margin-bottom:3px;}
+.t10-row{display:flex;justify-content:space-between;align-items:center;padding:4px 4px;border-bottom:1px solid var(--div);font-size:11px;cursor:pointer;transition:.1s;}
+.t10-row:hover{background:var(--hov);}
+.t10-n{color:var(--text);flex:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:6px;}
+.t10-a{font-family:monospace;font-weight:600;flex:1;text-align:right;}.t10-b{color:var(--sub);font-size:10px;flex:0 0 28px;text-align:right;}
+/* AGING */
+.ag-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--div);font-size:11px;cursor:pointer;transition:.1s;}
+.ag-row:hover{background:var(--hov);padding-left:4px;}
+.ag-l{flex:0 0 90px;color:var(--sub);}.ag-bar{flex:1;height:6px;background:var(--div);border-radius:3px;overflow:hidden;}
+.ag-fill{height:100%;border-radius:3px;transition:width .8s ease;}.ag-v{flex:0 0 80px;text-align:right;font-family:monospace;font-weight:600;}
+/* DAY BOOK TABLE */
+#dbtbl{width:100%;border-collapse:collapse;font-size:12px;}
+#dbtbl thead tr{background:var(--hdr);}
+#dbtbl th{padding:5px 8px;text-align:left;font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--border);}
+#dbtbl th.r{text-align:right;}
+#dbtbl td{padding:5px 8px;border-bottom:1px solid var(--div);}
+#dbtbl td.r{text-align:right;font-family:monospace;font-weight:600;}
+#dbtbl tr:nth-child(even) td{background:var(--row);}
+#dbtbl tr:hover td{background:var(--hov);cursor:pointer;}
+/* DATE PICKER */
+.date-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.date-row label{font-size:11px;color:var(--sub);}
+.date-row input[type=date]{padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--panel);color:var(--text);font-size:11px;}
+.date-row button{padding:4px 10px;background:var(--accent);border:none;border-radius:4px;color:#fff;font-size:11px;cursor:pointer;}
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:var(--modal);z-index:500;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:6px;width:90vw;max-width:1000px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 24px 60px var(--shadow);}
+.modal-head{background:var(--accent);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-radius:6px 6px 0 0;}
+.modal-title{font-size:13px;font-weight:700;color:#fff;}
+.modal-close{background:none;border:none;color:rgba(255,255,255,.8);font-size:18px;cursor:pointer;line-height:1;padding:0 4px;}
+.modal-close:hover{color:#fff;}
+.modal-body{flex:1;overflow-y:auto;padding:12px 14px;}
+.modal-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.modal-tbl thead tr{background:var(--hdr);position:sticky;top:0;}
+.modal-tbl th{padding:6px 8px;text-align:left;font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--border);}
+.modal-tbl th.r{text-align:right;}
+.modal-tbl td{padding:6px 8px;border-bottom:1px solid var(--div);}
+.modal-tbl td.r{text-align:right;font-family:monospace;font-weight:600;}
+.modal-tbl tr:nth-child(even) td{background:var(--row);}
+.modal-tbl tr:hover td{background:var(--hov);cursor:pointer;}
+.modal-foot{padding:8px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-total{font-size:13px;font-weight:700;font-family:monospace;color:var(--green);}
+.pg-btn{padding:4px 10px;background:var(--accent);border:none;border-radius:4px;color:#fff;font-size:11px;cursor:pointer;margin:0 2px;}
+.pg-btn:disabled{opacity:.4;cursor:not-allowed;}
+/* AI CHAT */
+#ai-panel{position:fixed;right:0;bottom:0;width:380px;height:520px;background:var(--panel);border:1px solid var(--border);border-radius:8px 8px 0 0;box-shadow:0 -8px 32px var(--shadow);z-index:400;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s ease;}
+#ai-panel.open{transform:translateY(0);}
+#ai-head{background:var(--accent);padding:8px 12px;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:space-between;}
+#ai-head span{font-size:13px;font-weight:700;color:#fff;}
+#ai-head button{background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:16px;line-height:1;}
+#ai-msgs{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;}
+.ai-msg{padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.5;max-width:90%;}
+.ai-msg.user{background:var(--accent);color:#fff;align-self:flex-end;}
+.ai-msg.bot{background:var(--hdr);color:var(--text);align-self:flex-start;border:1px solid var(--border);}
+.ai-msg.err{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.3);align-self:flex-start;}
+#ai-key-row{padding:6px 10px;border-top:1px solid var(--border);display:flex;gap:6px;}
+#ai-key{flex:1;padding:5px 8px;background:var(--hdr);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;}
+#ai-inp-row{padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:6px;}
+#ai-inp{flex:1;padding:6px 10px;background:var(--hdr);border:1px solid var(--border);border-radius:20px;color:var(--text);font-size:12px;outline:none;}
+#ai-inp:focus{border-color:var(--accent);}
+#ai-send{padding:6px 12px;background:var(--accent);border:none;border-radius:20px;color:#fff;font-size:12px;cursor:pointer;white-space:nowrap;}
+/* AI TOGGLE BTN */
+#ai-toggle{position:fixed;right:16px;bottom:16px;width:50px;height:50px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 4px 16px var(--shadow);z-index:399;transition:.2s;}
+#ai-toggle:hover{background:var(--accent2);transform:scale(1.05);}
+/* LOADING */
+.skel{height:200px;background:var(--panel);border:1px solid var(--border);border-radius:4px;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.spinning{animation:spin .8s linear infinite;display:inline-block;}
+.footer{text-align:center;padding:8px 0;border-top:1px solid var(--div);margin-top:4px;}
+.footer span{font-size:10px;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="title">📊 TALLY DASHBOARD</span>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="co-wrap">
+      <button id="co-btn" onclick="toggleCo()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+        <span id="co-name">Loading...</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div id="co-dd"></div>
+    </div>
+    <button class="tb-btn" onclick="loadDashboard(true)" id="ref-btn">
+      <svg id="ref-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+      <span id="ref-txt">Refresh</span>
+    </button>
+    <button class="tb-btn" onclick="toggleTheme()" id="theme-btn">
+      <svg id="th-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+      <span id="th-txt">Light</span>
+    </button>
+  </div>
+</div>
+
+<div id="subbar">
+  <span class="lbl">Company:</span><span class="val" id="sb-co">—</span>
+  <span class="lbl" style="margin-left:8px">Period:</span><span class="val" id="sb-per">—</span>
+  <span class="lbl" style="margin-left:auto" id="sb-day">—</span>
+</div>
+
+<div id="content">
+  <div id="loading" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+    <div class="skel"></div><div class="skel"></div><div class="skel"></div>
+    <div class="skel"></div><div class="skel"></div><div class="skel"></div>
+  </div>
+  <div id="err" style="display:none;text-align:center;padding:60px;">
+    <p style="color:var(--red);font-size:14px;margin-bottom:12px;">Failed to load data.</p>
+    <button onclick="loadDashboard()" style="padding:8px 20px;background:var(--accent);border:none;border-radius:4px;color:#fff;cursor:pointer;font-size:12px;">Retry</button>
+  </div>
+  <div id="dash" style="display:none;"></div>
+</div>
+
+<!-- MODALS -->
+<div id="modal-bg" class="modal-bg" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-title">Detail</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">Loading...</div>
+    <div class="modal-foot">
+      <span class="modal-total" id="modal-total"></span>
+      <div>
+        <button class="pg-btn" id="pg-prev" onclick="modalPage(-1)">◀ Prev</button>
+        <span id="pg-info" style="font-size:11px;color:var(--sub);margin:0 6px;"></span>
+        <button class="pg-btn" id="pg-next" onclick="modalPage(1)">Next ▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VOUCHER ENTRIES MODAL -->
+<div id="vmodal-bg" class="modal-bg" onclick="closeVModal(event)">
+  <div class="modal" style="max-width:600px;" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <span class="modal-title" id="vmodal-title">Voucher Entries</span>
+      <button class="modal-close" onclick="closeVModal()">✕</button>
+    </div>
+    <div class="modal-body" id="vmodal-body">Loading...</div>
+  </div>
+</div>
+
+<!-- AI CHAT -->
+<div id="ai-panel">
+  <div id="ai-head">
+    <span>🤖 AI Financial Assistant</span>
+    <button onclick="toggleAI()">✕</button>
+  </div>
+  <div id="ai-key-row">
+    <input id="ai-key" type="password" placeholder="Enter Groq API Key (get free at groq.com)" />
+    <button onclick="saveKey()" style="padding:5px 8px;background:var(--accent);border:none;border-radius:4px;color:#fff;font-size:11px;cursor:pointer;">Save</button>
+  </div>
+  <div id="ai-msgs">
+    <div class="ai-msg bot">👋 Hi! I'm your financial AI. Ask me about sales trends, receivables, or any accounting insight from your dashboard data.</div>
+  </div>
+  <div id="ai-inp-row">
+    <input id="ai-inp" placeholder="Ask about your financials..." onkeydown="if(event.key==='Enter')sendAI()"/>
+    <button id="ai-send" onclick="sendAI()">Send</button>
+  </div>
+</div>
+<button id="ai-toggle" onclick="toggleAI()" title="AI Assistant">🤖</button>
+
+<script>
+const API=""; let co="",dash=null,isDark=true,charts={};
+let modalState={type:"",page:1,month:"",total:0};
+
+// THEME
+function toggleTheme(){isDark=!isDark;document.documentElement.setAttribute("data-theme",isDark?"dark":"light");document.getElementById("th-txt").textContent=isDark?"Light":"Dark";if(co)loadDashboard();}
+
+// COMPANY
+function toggleCo(){document.getElementById("co-dd").classList.toggle("open");}
+document.addEventListener("click",e=>{if(!e.target.closest(".co-wrap"))document.getElementById("co-dd").classList.remove("open");});
+
+async function loadCompanies(){
+  try{
+    const r=await fetch(`${API}/api/companies`);const d=await r.json();
+    const dd=document.getElementById("co-dd");
+    dd.innerHTML=(d.companies||[]).map(c=>`<div class="co-opt ${c.name===co?'active':''}" onclick="selCo('${c.name.replace(/'/g,"\\'")}')">
+      ${c.name}<span style="font-size:10px;color:var(--sub);float:right">${(c.voucher_count||0).toLocaleString()} v</span>
+    </div>`).join("");
+    if(d.companies&&d.companies.length&&!co)selCo(d.companies[0].name);
+  }catch(e){console.error(e);}
+}
+function selCo(name){co=name;document.getElementById("co-name").textContent=name;document.getElementById("co-dd").classList.remove("open");loadDashboard();}
+
+// DASHBOARD
+async function loadDashboard(isRef=false){
+  const btn=document.getElementById("ref-btn"),ico=document.getElementById("ref-ico"),txt=document.getElementById("ref-txt");
+  if(!isRef){document.getElementById("loading").style.display="grid";document.getElementById("dash").style.display="none";document.getElementById("err").style.display="none";}
+  else{ico.classList.add("spinning");txt.textContent="…";btn.disabled=true;}
+  try{
+    const r=await fetch(`${API}/api/dashboard?company=${encodeURIComponent(co)}`);
+    if(!r.ok)throw new Error("fail");
+    dash=await r.json();
+    render();
+    document.getElementById("loading").style.display="none";
+    document.getElementById("dash").style.display="block";
+    document.getElementById("err").style.display="none";
+    document.getElementById("sb-co").textContent=dash.company;
+    document.getElementById("sb-per").textContent=dash.fy_label;
+    document.getElementById("sb-day").textContent=new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"short",year:"numeric"});
+  }catch(e){
+    document.getElementById("loading").style.display="none";
+    document.getElementById("err").style.display="block";
+  }finally{ico.classList.remove("spinning");txt.textContent="Refresh";btn.disabled=false;}
+}
+
+// HELPERS
+function f(n){n=parseFloat(n||0);const a=Math.abs(n),s=n<0?"-":"";if(a>=1e7)return`${s}₹${(a/1e7).toFixed(2)} Cr`;if(a>=1e5)return`${s}₹${(a/1e5).toFixed(2)} L`;if(a===0)return"₹0";return`${s}₹${a.toLocaleString("en-IN",{maximumFractionDigits:0})}`;}
+function cc(n){return parseFloat(n)>=0?"green":"red";}
+function pch(v){const n=parseFloat(v||0);return`<span class="${n>=0?'green':'red'}" style="font-size:10px">${n>=0?'▲':'▼'}${Math.abs(n)}% vs last month</span>`;}
+function row(l,v,cls="",bold=false){return`<div class="tr${bold?' bold':''}"><span class="lb">${l}</span><span class="vl ${cls}">${v}</span></div>`;}
+function thead(cols,rights=[]){return`<div class="th-row">${cols.map((c,i)=>`<span style="flex:${i===0?2:1};text-align:${rights.includes(i)?'right':'left'}">${c}</span>`).join("")}</div>`;}
+function getC(){const s=getComputedStyle(document.documentElement);return{green:s.getPropertyValue('--green').trim(),amber:s.getPropertyValue('--amber').trim(),blue:s.getPropertyValue('--accent').trim(),red:s.getPropertyValue('--red').trim(),cyan:s.getPropertyValue('--cyan').trim(),grid:isDark?"rgba(255,255,255,.06)":"rgba(0,0,0,.06)",text:s.getPropertyValue('--sub').trim(),bg:s.getPropertyValue('--panel').trim()};}
+function mkChart(id,type,labels,datasets,extra={}){
+  if(charts[id]){charts[id].destroy();delete charts[id];}
+  const el=document.getElementById(id);if(!el)return;
+  const c=getC();
+  charts[id]=new Chart(el,{type,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:isDark?"rgba(15,17,23,.95)":"rgba(255,255,255,.95)",titleColor:c.text,bodyColor:isDark?"#e2e8f0":"#1e293b",borderColor:c.grid,borderWidth:1,padding:8,callbacks:{label:ctx=>`${ctx.dataset.label}: ${f(ctx.raw)}`}}},
+    scales:{x:{grid:{color:c.grid,drawBorder:false},ticks:{color:c.text,font:{size:9}}},y:{grid:{color:c.grid,drawBorder:false},ticks:{color:c.text,font:{size:9},callback:v=>v>=1e7?`${(v/1e7).toFixed(1)}Cr`:v>=1e5?`${(v/1e5).toFixed(0)}L`:v>=1e3?`${(v/1e3).toFixed(0)}K`:v}}},
+    onClick:(evt,els)=>{if(els.length&&extra.onClick)extra.onClick(labels[els[0].index]);},
+    ...extra}});
+}
+
+// RENDER DASHBOARD
+function render(){
+  const d=dash,t=d.sales.trend||[],labels=t.map(x=>x.month);
+  const c=getC();
+  document.getElementById("dash").innerHTML=`
+  <!-- ROW1: Sales + Purchase + Cash Flow -->
+  <div class="grid-3">
+    <div class="panel">
+      <div class="ph ph-click" onclick="openSalesModal()">
+        <span class="ph-t">📈 Sales Trend</span><span class="ph-s">${d.fy_label} · Click for details</span>
+      </div>
+      <div class="pb">
+        <div class="kpis">
+          <div class="kpi"><div class="kpi-l">Total Sales</div><div class="kpi-v green">${d.sales.total.formatted}</div></div>
+          <div class="kpi"><div class="kpi-l">This Month</div><div class="kpi-v accent">${d.sales.this_month.formatted}</div><div class="kpi-c">${pch(d.sales.this_month.vs_last)}</div></div>
+        </div>
+        <div style="height:140px;position:relative"><canvas id="salesCh"></canvas></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph ph-click" onclick="openPurchaseModal()">
+        <span class="ph-t">🛒 Purchase Trend</span><span class="ph-s">${d.fy_label} · Click for details</span>
+      </div>
+      <div class="pb">
+        <div class="kpis">
+          <div class="kpi"><div class="kpi-l">Total Purchase</div><div class="kpi-v amber">${d.sales.purchase_total.formatted}</div></div>
+          <div class="kpi"><div class="kpi-l">This Month</div><div class="kpi-v accent">${d.sales.purchase_month.formatted}</div><div class="kpi-c">${pch(d.sales.purchase_month.vs_last)}</div></div>
+        </div>
+        <div style="height:140px;position:relative"><canvas id="purCh"></canvas></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-t">💰 Cash In / Out Flow</span><span class="ph-s">${d.fy_label}</span></div>
+      <div class="pb">
+        ${thead(["Particulars","Amount"],[1])}
+        ${row("Cash in Hand",d.summary.cash.formatted,"green")}
+        ${row("Bank Balance",d.summary.bank.formatted,"accent")}
+        ${row("Total Payables",d.summary.payables.formatted,"red")}
+        <div class="tdiv"></div>
+        ${row("Net Position",d.summary.net_assets.formatted,cc(d.summary.net_assets.amount),true)}
+        <div style="height:80px;position:relative;margin-top:8px"><canvas id="flowCh"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW2: Trading / Assets / Receivables / Ratios -->
+  <div class="grid-4">
+    <div class="panel">
+      <div class="ph"><span class="ph-t">📊 Trading Details</span><span class="ph-s">${d.fy_label}</span></div>
+      <div class="pb">
+        ${thead(["Particulars","Amount"],[1])}
+        ${row("Total Sales",d.sales.total.formatted,"green")}
+        ${row("Total Purchase",d.sales.purchase_total.formatted,"amber")}
+        ${row("Total Receipts",d.sales.receipt_total.formatted,"cyan")}
+        ${row("Total Payments",d.sales.payment_total.formatted,"red")}
+        <div class="tdiv"></div>
+        ${row("Net (Sales-Purchase)",f(d.sales.total.amount-d.sales.purchase_total.amount),d.sales.total.amount>=d.sales.purchase_total.amount?"green":"red",true)}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-t">🏦 Assets / Liabilities</span><span class="ph-s">${d.fy_label}</span></div>
+      <div class="pb">
+        ${thead(["Particulars","Closing Balance"],[1])}
+        ${row("Cash in Hand",d.summary.cash.formatted,"green")}
+        ${row("Bank Accounts",d.summary.bank.formatted,"green")}
+        ${row("Total Payables",d.summary.payables.formatted,"red")}
+        ${row("Inactive Customers",String(d.inactive_customers),d.inactive_customers>0?"amber":"green")}
+        <div class="tdiv"></div>
+        ${row("Net Assets",d.summary.net_assets.formatted,cc(d.summary.net_assets.amount),true)}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph ph-click" onclick="openRecModal()">
+        <span class="ph-t">📋 Receivables / Payables</span><span class="ph-s">Click for details</span>
+      </div>
+      <div class="pb">
+        ${thead(["Particulars","Pending Amount"],[1])}
+        ${row("Total Receivables",d.receivables.total.formatted,"green")}
+        ${row("Overdue Receivables",d.receivables.overdue.formatted,"red")}
+        ${row("Total Payables",d.summary.payables.formatted,"amber")}
+        <div style="font-size:10px;color:var(--sub);margin:6px 0 4px;padding:0 6px">Aging Buckets (click to drill)</div>
+        ${d.receivables.aging.slice(0,3).map((a,i)=>`<div class="tr" onclick="openRecModal('${['0-45','45-90','90-135'][i]}')"><span class="lb" style="cursor:pointer">${a.label}</span><span class="vl ${['green','amber','red'][i]}">${a.formatted}</span></div>`).join("")}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-t">📐 Accounting Ratios</span><span class="ph-s">${d.fy_label}</span></div>
+      <div class="pb">
+        ${thead(["Particulars","Value"],[1])}
+        ${(()=>{const ca=d.summary.cash.amount+d.summary.bank.amount,pa=d.summary.payables.amount||1,re=d.receivables.total.amount||0,sa=d.sales.total.amount||1;return[row("Cash/Payables Ratio",`${(ca/pa).toFixed(2)} : 1`,(ca/pa)>=1?"green":"red"),row("Receivable Turnover",`${((sa/Math.max(re,1))*100).toFixed(1)}%`),row("Overdue %",re>0?`${((d.receivables.overdue.amount/re)*100).toFixed(1)}%`:"0%",d.receivables.overdue.amount>0?"amber":"green"),row("15-Day Proj.",d.receivables.proj_15.formatted),row("60-Day Proj.",d.receivables.proj_60.formatted)].join("")})()}
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW3: Cash/Bank + Top Groups + Aging -->
+  <div class="grid-132">
+    <div class="panel">
+      <div class="ph"><span class="ph-t">🏦 Cash / Bank Accounts</span></div>
+      <div class="pb">
+        ${thead(["Particulars","Balance"],[1])}
+        ${row("CASH IN HAND",d.summary.cash.formatted,"green",true)}
+        ${(d.bank_ledgers||[]).length?d.bank_ledgers.map(l=>row(l.name,f(l.balance),"accent")).join(""):row("Bank Accounts",d.summary.bank.formatted,"accent")}
+        <div class="tdiv"></div>
+        ${row("Total",f(d.summary.cash.amount+d.summary.bank.amount),"green",true)}
+        <div style="height:80px;position:relative;margin-top:8px"><canvas id="cashCh"></canvas></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-t">👥 Top Groups / Ledgers</span><span class="ph-s">Click name to view ledger history</span></div>
+      <div class="pb">
+        <div class="t10-grid">
+          <div>
+            <div class="t10-title accent">Top Customers</div>
+            ${thead(["Name","Amount","Bills"],[1,2])}
+            ${(d.top_customers||[]).slice(0,8).map(c=>`<div class="t10-row" onclick="openLedgerModal('${c.name.replace(/'/g,"\\'")}')"><span class="t10-n">${c.name}</span><span class="t10-a green">${f(c.amount)}</span><span class="t10-b">${c.bills}</span></div>`).join("")||'<div style="padding:8px;color:var(--sub);font-size:11px">No data</div>'}
+          </div>
+          <div>
+            <div class="t10-title amber">Top Suppliers</div>
+            ${thead(["Name","Amount","Bills"],[1,2])}
+            ${(d.top_suppliers||[]).slice(0,8).map(s=>`<div class="t10-row" onclick="openLedgerModal('${s.name.replace(/'/g,"\\'")}')"><span class="t10-n">${s.name}</span><span class="t10-a amber">${f(s.amount)}</span><span class="t10-b">${s.bills}</span></div>`).join("")||'<div style="padding:8px;color:var(--sub);font-size:11px">No data</div>'}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph ph-click" onclick="openRecModal()">
+        <span class="ph-t">⏳ Receivables Aging</span><span class="ph-s">Total: ${d.receivables.total.formatted}</span>
+      </div>
+      <div class="pb">
+        ${(()=>{const tot=d.receivables.total.amount||1;const cols=["#22c55e","#f59e0b","#f97316","#ef4444","#8b5cf6","#06b6d4"];const buckets=["0-45","45-90","90-135","135-180","180-225","225+"];return(d.receivables.aging||[]).map((a,i)=>`<div class="ag-row" onclick="openRecModal('${buckets[i]}')"><span class="ag-l">${a.label}</span><div class="ag-bar"><div class="ag-fill" style="width:${Math.min((a.amount/tot)*100,100)}%;background:${cols[i]}"></div></div><span class="ag-v" style="color:${cols[i]}">${a.formatted}</span></div>`).join("");})()}
+        <div style="height:100px;position:relative;margin-top:8px"><canvas id="agCh"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW4: Day Book -->
+  <div class="full">
+    <div class="panel">
+      <div class="ph"><span class="ph-t">📖 Day Book</span><span class="ph-s">${d.day_book.length} entries</span></div>
+      <div class="pb" style="padding:0">
+        <div class="date-row" style="padding:8px 12px 4px">
+          <label>Date:</label>
+          <input type="date" id="db-date" value="${d.today}" onchange="loadDayBook()"/>
+          <button onclick="loadDayBook()">Load</button>
+        </div>
+        <div id="db-wrap" style="max-height:220px;overflow-y:auto">
+          <table id="dbtbl">
+            <thead><tr><th>Voucher No.</th><th>Particulars</th><th>Type</th><th>Date</th><th class="r">Amount</th></tr></thead>
+            <tbody id="db-body">${renderDayBookRows(d.day_book)}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer"><span>BizSage · tally_sync_v2 · ${d.fy_label} · ${new Date().toLocaleTimeString("en-IN")}</span></div>`;
+
+  // Draw Charts
+  setTimeout(()=>{
+    const labels2=t.map(x=>x.month);
+    mkChart("salesCh","line",labels2,[{label:"Sales",data:t.map(x=>x.sales),borderColor:c.green,backgroundColor:c.green+"20",fill:true,tension:.4,pointRadius:3,borderWidth:2,pointHoverRadius:5}],{onClick:(evt,els)=>{if(els.length)openSalesModal(t[els[0].index].month);}});
+    mkChart("purCh","line",labels2,[{label:"Purchase",data:t.map(x=>x.purchase),borderColor:c.amber,backgroundColor:c.amber+"20",fill:true,tension:.4,pointRadius:3,borderWidth:2,pointHoverRadius:5}],{onClick:(evt,els)=>{if(els.length)openPurchaseModal(t[els[0].index].month);}});
+    const l6=t.slice(-6);
+    mkChart("flowCh","bar",l6.map(x=>x.month),[{label:"Sales",data:l6.map(x=>x.sales),backgroundColor:c.green+"80",borderRadius:2,maxBarThickness:10},{label:"Receipt",data:l6.map(x=>x.receipt),backgroundColor:c.blue+"80",borderRadius:2,maxBarThickness:10}]);
+    mkChart("cashCh","line",l6.map(x=>x.month),[{label:"Sales",data:l6.map(x=>x.sales),borderColor:c.green,tension:.4,pointRadius:2,borderWidth:1.5},{label:"Receipt",data:l6.map(x=>x.receipt),borderColor:c.blue,tension:.4,pointRadius:2,borderWidth:1.5}]);
+    const ag=d.receivables.aging||[],agcols=["#22c55e","#f59e0b","#f97316","#ef4444","#8b5cf6","#06b6d4"];
+    if(charts["agCh"]){charts["agCh"].destroy();delete charts["agCh"];}
+    const el=document.getElementById("agCh");
+    if(el)charts["agCh"]=new Chart(el,{type:"doughnut",data:{labels:ag.map(a=>a.label),datasets:[{data:ag.map(a=>a.amount),backgroundColor:agcols,borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:"60%",plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${f(ctx.raw)}`}}},onClick:(evt,els)=>{if(els.length){const buckets=["0-45","45-90","90-135","135-180","180-225","225+"];openRecModal(buckets[els[0].index]);}}}});
+  },50);
+}
+
+function renderDayBookRows(rows){
+  const tc={Sales:"var(--green)",Receipt:"var(--accent)",Payment:"var(--red)",Purchase:"var(--amber)",Journal:"#8b5cf6",Contra:"#06b6d4"};
+  if(!rows.length)return`<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--sub)">No entries for this date</td></tr>`;
+  return rows.map(e=>`<tr onclick="openVoucherModal('${e.voucher.replace(/'/g,"\\'")}')">
+    <td style="color:var(--accent);font-family:monospace">${e.voucher||"—"}</td>
+    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.particulars||"—"}</td>
+    <td style="color:${tc[e.type]||'var(--sub)'};font-weight:600">${e.type}</td>
+    <td style="color:var(--sub)">${e.date}</td>
+    <td class="r">${f(e.amount)}</td>
+  </tr>`).join("");
+}
+
+async function loadDayBook(){
+  const dt=document.getElementById("db-date").value;
+  try{
+    const r=await fetch(`${API}/api/daybook?company=${encodeURIComponent(co)}&date=${dt}`);
+    const d=await r.json();
+    document.getElementById("db-body").innerHTML=renderDayBookRows(d.entries||[]);
+  }catch(e){}
+}
+
+// ── MODALS ──────────────────────────────────────────────────────────────────
+function openModal(title){document.getElementById("modal-title").textContent=title;document.getElementById("modal-bg").classList.add("open");document.getElementById("modal-body").innerHTML='<div style="padding:30px;text-align:center;color:var(--sub)">Loading...</div>';document.getElementById("modal-total").textContent="";document.getElementById("pg-info").textContent="";document.getElementById("pg-prev").disabled=true;document.getElementById("pg-next").disabled=true;}
+function closeModal(e){if(!e||e.target===document.getElementById("modal-bg"))document.getElementById("modal-bg").classList.remove("open");}
+
+async function openSalesModal(month=""){
+  modalState={type:"sales",page:1,month};
+  openModal(`Sales Vouchers${month?" — "+month:""}`);
+  await loadModalData();
+}
+async function openPurchaseModal(month=""){
+  modalState={type:"purchase",page:1,month};
+  openModal(`Purchase Vouchers${month?" — "+month:""}`);
+  await loadModalData();
+}
+async function openRecModal(bucket=""){
+  modalState={type:"receivables",page:1,month:"",bucket:bucket||""};
+  openModal(`Receivables${bucket?" — "+bucket+" Days":""}`);
+  await loadModalData();
+}
+async function openLedgerModal(ledger){
+  modalState={type:"ledger",page:1,ledger};
+  openModal(`Ledger: ${ledger}`);
+  await loadModalData();
+}
+
+async function loadModalData(){
+  try{
+    let url,rows,total=0;
+    const p=modalState.page;
+    if(modalState.type==="sales"){
+      url=`${API}/api/sales/detail?company=${encodeURIComponent(co)}&page=${p}&month=${encodeURIComponent(modalState.month||"")}`;
+      const d=await(await fetch(url)).json();rows=d.vouchers||[];
+      total=rows.reduce((s,r)=>s+r.amount,0);
+      document.getElementById("modal-body").innerHTML=`
+        <table class="modal-tbl"><thead><tr><th>Voucher</th><th>Date</th><th>Party</th><th>Narration</th><th class="r">Amount</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr onclick="openVoucherModal('${r.voucher.replace(/'/g,"\\'")}')"><td style="color:var(--accent);font-family:monospace">${r.voucher}</td><td>${r.date}</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.party}</td><td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--sub)">${r.narration}</td><td class="r green">${r.formatted}</td></tr>`).join("")||'<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--sub)">No data</td></tr>'}</tbody></table>`;
+    }
+    else if(modalState.type==="purchase"){
+      url=`${API}/api/purchase/detail?company=${encodeURIComponent(co)}&page=${p}&month=${encodeURIComponent(modalState.month||"")}`;
+      const d=await(await fetch(url)).json();rows=d.vouchers||[];
+      total=rows.reduce((s,r)=>s+r.amount,0);
+      document.getElementById("modal-body").innerHTML=`
+        <table class="modal-tbl"><thead><tr><th>Voucher</th><th>Date</th><th>Party</th><th>Narration</th><th class="r">Amount</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr onclick="openVoucherModal('${r.voucher.replace(/'/g,"\\'")}')"><td style="color:var(--accent);font-family:monospace">${r.voucher}</td><td>${r.date}</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.party}</td><td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--sub)">${r.narration}</td><td class="r amber">${r.formatted}</td></tr>`).join("")||'<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--sub)">No data</td></tr>'}</tbody></table>`;
+    }
+    else if(modalState.type==="receivables"){
+      url=`${API}/api/receivables/detail?company=${encodeURIComponent(co)}&page=${p}&bucket=${encodeURIComponent(modalState.bucket||"")}`;
+      const d=await(await fetch(url)).json();rows=d.receivables||[];
+      total=rows.reduce((s,r)=>s+r.amount,0);
+      document.getElementById("modal-body").innerHTML=`
+        <table class="modal-tbl"><thead><tr><th>Party Name</th><th class="r">Pending Amount</th><th class="r">Bills</th><th class="r">Avg Days</th><th class="r">Overdue Days</th><th>Last Transaction</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr onclick="openLedgerModal('${r.party.replace(/'/g,"\\'")}')"><td style="font-weight:600">${r.party}</td><td class="r ${r.overdue_days>90?'red':r.overdue_days>45?'amber':'green'}">${r.formatted}</td><td class="r">${r.bills}</td><td class="r">${r.avg_days}</td><td class="r ${r.overdue_days>90?'red':r.overdue_days>45?'amber':''}">${r.overdue_days}</td><td>${r.last_date||"—"}</td></tr>`).join("")||'<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--sub)">No receivables</td></tr>'}</tbody></table>`;
+    }
+    else if(modalState.type==="ledger"){
+      url=`${API}/api/ledger/detail?company=${encodeURIComponent(co)}&ledger=${encodeURIComponent(modalState.ledger)}&page=${p}`;
+      const d=await(await fetch(url)).json();rows=d.entries||[];
+      total=d.balance||0;
+      document.getElementById("modal-body").innerHTML=`
+        <div style="display:flex;gap:16px;margin-bottom:10px;padding:8px 10px;background:var(--hdr);border-radius:4px;">
+          <span style="font-size:12px;color:var(--sub)">Ledger:</span><span style="font-size:12px;font-weight:700;color:var(--accent)">${modalState.ledger}</span>
+          <span style="font-size:12px;color:var(--sub);margin-left:auto">Balance:</span><span style="font-size:13px;font-weight:700;font-family:monospace;color:${total>=0?'var(--green)':'var(--red)'}">${d.formatted}</span>
+        </div>
+        <table class="modal-tbl"><thead><tr><th>Voucher</th><th>Date</th><th>Type</th><th>Dr/Cr</th><th class="r">Amount</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr onclick="openVoucherModal('${r.voucher.replace(/'/g,"\\'")}')"><td style="color:var(--accent);font-family:monospace">${r.voucher}</td><td>${r.date}</td><td>${r.type}</td><td style="color:${r.entry_type==='DR'?'var(--green)':'var(--red)'};font-weight:600">${r.entry_type}</td><td class="r">${r.formatted}</td></tr>`).join("")||'<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--sub)">No entries</td></tr>'}</tbody></table>`;
+    }
+    document.getElementById("modal-total").textContent=total?`Total: ${f(total)}`:"";
+    document.getElementById("pg-info").textContent=`Page ${p}`;
+    document.getElementById("pg-prev").disabled=p<=1;
+    document.getElementById("pg-next").disabled=rows.length<50;
+  }catch(e){document.getElementById("modal-body").innerHTML=`<div style="padding:20px;color:var(--red)">${e.message}</div>`;}
+}
+
+function modalPage(dir){modalState.page=Math.max(1,modalState.page+dir);loadModalData();}
+
+// VOUCHER MODAL
+async function openVoucherModal(voucher){
+  document.getElementById("vmodal-title").textContent=`Voucher: ${voucher}`;
+  document.getElementById("vmodal-bg").classList.add("open");
+  document.getElementById("vmodal-body").innerHTML='<div style="padding:20px;text-align:center;color:var(--sub)">Loading...</div>';
+  try{
+    const d=await(await fetch(`${API}/api/voucher/entries?company=${encodeURIComponent(co)}&voucher=${encodeURIComponent(voucher)}`)).json();
+    const rows=d.entries||[];
+    const drTotal=rows.filter(r=>r.type==="DR").reduce((s,r)=>s+r.amount,0);
+    document.getElementById("vmodal-body").innerHTML=`
+      <table class="modal-tbl"><thead><tr><th>Ledger Name</th><th>Dr/Cr</th><th class="r">Amount</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr><td style="font-weight:600">${r.ledger}</td><td style="color:${r.type==='DR'?'var(--green)':'var(--red)'};font-weight:700">${r.type}</td><td class="r">${r.formatted}</td></tr>`).join("")}</tbody></table>
+      <div style="text-align:right;padding:10px 8px;font-weight:700;font-family:monospace;color:var(--green)">Total: ${f(drTotal)}</div>`;
+  }catch(e){document.getElementById("vmodal-body").innerHTML=`<div style="padding:20px;color:var(--red)">${e.message}</div>`;}
+}
+function closeVModal(e){if(!e||e.target===document.getElementById("vmodal-bg"))document.getElementById("vmodal-bg").classList.remove("open");}
+
+// AI CHAT
+let aiOpen=false,aiKey=localStorage.getItem("groq_key")||"";
+document.getElementById("ai-key").value=aiKey;
+function saveKey(){aiKey=document.getElementById("ai-key").value.trim();localStorage.setItem("groq_key",aiKey);addAIMsg("bot","✅ API key saved!");}
+function toggleAI(){aiOpen=!aiOpen;document.getElementById("ai-panel").classList.toggle("open",aiOpen);}
+function addAIMsg(role,msg){const d=document.getElementById("ai-msgs");const div=document.createElement("div");div.className=`ai-msg ${role}`;div.textContent=msg;d.appendChild(div);d.scrollTop=d.scrollHeight;}
+async function sendAI(){
+  const inp=document.getElementById("ai-inp"),msg=inp.value.trim();
+  if(!msg)return;
+  if(!aiKey){addAIMsg("err","❌ Please enter your Groq API key above and click Save.");return;}
+  addAIMsg("user",msg);inp.value="";
+  const ctx=dash?`Company: ${dash.company}. FY: ${dash.fy_label}. Sales: ${dash.sales.total.formatted}. Purchase: ${dash.sales.purchase_total?.formatted||"N/A"}. Receivables: ${dash.receivables.total.formatted}. Overdue: ${dash.receivables.overdue.formatted}. Cash: ${dash.summary.cash.formatted}. Bank: ${dash.summary.bank.formatted}. Payables: ${dash.summary.payables.formatted}. Top customer: ${dash.top_customers?.[0]?.name||"N/A"} (${dash.top_customers?.[0]?f(dash.top_customers[0].amount):""}). Inactive customers: ${dash.inactive_customers}.`:"";
+  const system=`You are a financial AI for Tally accounting. Company: ${co}. Context: ${ctx}. Be concise, use Indian format (Cr/L). Answer based on data provided.`;
+  try{
+    document.getElementById("ai-send").disabled=true;document.getElementById("ai-send").textContent="…";
+    const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+aiKey},
+      body:JSON.stringify({model:"llama-3.3-70b-versatile",messages:[{role:"system",content:system},{role:"user",content:msg}],max_tokens:500,temperature:0.3})
+    });
+    if(!r.ok){
+      const err=await r.json().catch(()=>({}));
+      const msg2=err?.error?.message||`Groq error ${r.status}`;
+      if(r.status===401)addAIMsg("err","❌ Invalid Groq API key. Get a free key at groq.com");
+      else if(r.status===403)addAIMsg("err","❌ Groq API key forbidden — check key permissions at groq.com");
+      else addAIMsg("err","❌ "+msg2);
+      return;
+    }
+    const d=await r.json();
+    addAIMsg("bot",d.choices[0].message.content);
+  }catch(e){addAIMsg("err","❌ Network error: "+e.message);}
+  finally{document.getElementById("ai-send").disabled=false;document.getElementById("ai-send").textContent="Send";}
+}
+
+// INIT
+document.getElementById("sb-day").textContent=new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"short",year:"numeric"});
+loadCompanies();
+</script>
+</body>
+</html>
