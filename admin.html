@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin · Tally Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#080c14;color:#e2e8f4;font-family:'Outfit',sans-serif;font-size:13px;min-height:100vh;}
+a{color:inherit;text-decoration:none;}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#1c2438;border-radius:4px;}
+
+/* Topbar */
+#topbar{
+  background:linear-gradient(90deg,#060a12,#0a1628);
+  border-bottom:1px solid #1c2438;padding:0 20px;height:46px;
+  display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;
+}
+.tb-logo{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;
+  background:linear-gradient(90deg,#60a5fa,#d4a017);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.tb-badge{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;
+  font-size:9px;padding:2px 8px;border-radius:10px;font-family:'JetBrains Mono',monospace;font-weight:700;}
+.tb-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.tb-btn{padding:5px 12px;background:rgba(255,255,255,.06);border:1px solid #1c2438;border-radius:5px;
+  color:#8ab0d8;font-size:11px;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:.15s;}
+.tb-btn:hover{background:rgba(255,255,255,.1);color:#fff;}
+.user-chip{font-size:10px;color:#5a6f94;font-family:'JetBrains Mono',monospace;}
+
+/* Layout */
+.content{padding:20px;max-width:1400px;margin:0 auto;}
+
+/* Section header */
+.sec-hdr{display:flex;align-items:center;gap:10px;margin:24px 0 12px;}
+.sec-hdr h2{font-size:14px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:#e2e8f4;}
+.sec-hdr .sec-sub{font-size:10px;color:#3a5070;font-family:'JetBrains Mono',monospace;}
+.sec-hdr .refresh-btn{margin-left:auto;padding:4px 10px;background:rgba(37,99,235,.12);
+  border:1px solid rgba(37,99,235,.25);border-radius:4px;color:#60a5fa;font-size:10px;cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;transition:.15s;}
+.sec-hdr .refresh-btn:hover{background:rgba(37,99,235,.25);}
+
+/* Stats strip */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat{background:#0e1420;border:1px solid #1c2438;border-radius:6px;padding:14px 16px;}
+.stat-lbl{font-size:9px;color:#5a6f94;text-transform:uppercase;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;margin-bottom:6px;}
+.stat-val{font-size:22px;font-weight:800;font-family:'Space Grotesk',sans-serif;}
+.stat-sub{font-size:10px;color:#3a5070;margin-top:3px;}
+.green{color:#22c55e;} .amber{color:#f59e0b;} .blue{color:#60a5fa;} .red{color:#ef4444;} .cyan{color:#06b6d4;}
+
+/* Panel */
+.panel{background:#0e1420;border:1px solid #1c2438;border-radius:6px;margin-bottom:16px;overflow:hidden;}
+.ph{background:#0d1219;padding:10px 16px;border-bottom:1px solid #1c2438;display:flex;align-items:center;gap:8px;}
+.ph-t{font-size:12px;font-weight:700;font-family:'Space Grotesk',sans-serif;}
+.ph-s{font-size:10px;color:#3a5070;margin-left:auto;font-family:'JetBrains Mono',monospace;}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{padding:8px 14px;text-align:left;font-size:9px;color:#3a5070;text-transform:uppercase;
+  letter-spacing:.1em;font-family:'JetBrains Mono',monospace;border-bottom:1px solid #1c2438;background:#080c14;}
+.tbl th.r,.tbl td.r{text-align:right;}
+.tbl td{padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px;}
+.tbl tr:hover td{background:rgba(37,99,235,.04);}
+.tbl tr:last-child td{border-bottom:none;}
+
+/* Progress bar */
+.prog{height:5px;background:#1c2438;border-radius:3px;overflow:hidden;margin-top:4px;}
+.prog-fill{height:100%;border-radius:3px;transition:.3s;}
+
+/* Grid 2 col */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* Chart wrap */
+.chart-wrap{padding:16px;height:220px;position:relative;}
+
+/* AI limit editor */
+.limit-input{width:60px;padding:3px 6px;background:#080c14;border:1px solid #1c2438;border-radius:3px;color:#e2e8f4;font-size:11px;font-family:'JetBrains Mono',monospace;text-align:center;}
+.save-btn{padding:3px 8px;background:rgba(37,99,235,.2);border:1px solid rgba(37,99,235,.3);border-radius:3px;color:#60a5fa;font-size:10px;cursor:pointer;font-family:'Space Grotesk',sans-serif;}
+.save-btn:hover{background:rgba(37,99,235,.4);}
+.plan-sel{padding:3px 6px;background:#080c14;border:1px solid #1c2438;border-radius:3px;color:#e2e8f4;font-size:10px;}
+
+/* Badge */
+.badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.badge-free{background:rgba(90,111,148,.15);border:1px solid rgba(90,111,148,.3);color:#5a6f94;}
+.badge-premium{background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.3);color:#d4a017;}
+.badge-admin{background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.3);color:#a855f7;}
+
+/* Loader */
+.loader{padding:30px;text-align:center;color:#3a5070;font-size:11px;font-family:'JetBrains Mono',monospace;}
+
+@media(max-width:900px){.stat-grid{grid-template-columns:1fr 1fr;}.g2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="tb-logo">Tally Admin</div>
+  <span class="tb-badge">ADMIN PANEL</span>
+  <div class="tb-right">
+    <span class="user-chip" id="admin-name">Loading…</span>
+    <a href="/" class="tb-btn">← Dashboard</a>
+    <button class="tb-btn" onclick="doLogout()" style="border-color:rgba(239,68,68,.3);color:#f87171;">Logout</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- SUMMARY STATS -->
+  <div class="sec-hdr">
+    <h2>📊 Overview</h2>
+    <span class="sec-sub" id="last-updated">Loading…</span>
+    <button class="refresh-btn" onclick="loadAll()">⟳ Refresh</button>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-lbl">Total Users</div><div class="stat-val blue" id="s-users">—</div><div class="stat-sub">Registered accounts</div></div>
+    <div class="stat"><div class="stat-lbl">AI Chats Today</div><div class="stat-val amber" id="s-chats">—</div><div class="stat-sub">Across all users</div></div>
+    <div class="stat"><div class="stat-lbl">Most Active Tab</div><div class="stat-val cyan" id="s-tab">—</div><div class="stat-sub">By total time</div></div>
+    <div class="stat"><div class="stat-lbl">Avg Session</div><div class="stat-val green" id="s-avg">—</div><div class="stat-sub">Seconds per event</div></div>
+  </div>
+
+  <!-- USER TABLE + AI USAGE -->
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="ph-t">👥 Users · Activity Summary</span><span class="ph-s">Click limit to edit</span></div>
+      <div style="overflow-x:auto">
+        <table class="tbl" id="users-tbl">
+          <thead><tr>
+            <th>Name / Email</th><th>Plan</th>
+            <th class="r">Days Active</th><th class="r">Total Time</th>
+            <th class="r">AI Chats</th><th class="r">Daily Limit</th>
+          </tr></thead>
+          <tbody id="users-body"><tr><td colspan="6" class="loader">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><span class="ph-t">🤖 Today's AI Usage</span><span class="ph-s" id="ai-date">—</span></div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th>User</th><th class="r">Used</th><th class="r">Limit</th><th class="r">Remaining</th></tr></thead>
+          <tbody id="ai-body"><tr><td colspan="4" class="loader">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB TIME CHART + TABLE -->
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="ph-t">⏱ Time Spent Per Tab</span><span class="ph-s">All users, all time</span></div>
+      <div class="chart-wrap"><canvas id="tab-chart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-t">📋 Tab Analytics Detail</span></div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th>Tab</th><th class="r">Visits</th><th class="r">Total (min)</th><th class="r">Avg (sec)</th><th class="r">Users</th></tr></thead>
+          <tbody id="tab-body"><tr><td colspan="5" class="loader">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAILY ACTIVE USERS CHART -->
+  <div class="panel">
+    <div class="ph"><span class="ph-t">📅 Daily Active Users (Last 30 Days)</span></div>
+    <div class="chart-wrap" style="height:180px"><canvas id="dau-chart"></canvas></div>
+  </div>
+
+</div>
+
+<script>
+const API = "";
+let tabChart = null, dauChart = null;
+
+function authHeaders() {
+  const token = localStorage.getItem("td_token");
+  return token ? {"Authorization": "Bearer " + token, "Content-Type": "application/json"} : {"Content-Type": "application/json"};
+}
+
+function fmtSec(s) {
+  s = parseInt(s) || 0;
+  if(s < 60)  return s + "s";
+  if(s < 3600) return Math.round(s/60) + "m";
+  return (s/3600).toFixed(1) + "h";
+}
+
+async function loadMe() {
+  try {
+    const r = await fetch(`${API}/api/auth/me`, {credentials:"include", headers: authHeaders()});
+    if(!r.ok) { window.location.href="/login"; return; }
+    const d = await r.json();
+    if(d.user.role !== "admin") { window.location.href="/"; return; }
+    document.getElementById("admin-name").textContent = d.user.name + " (" + d.user.email + ")";
+  } catch(e) { window.location.href="/login"; }
+}
+
+async function loadUsers() {
+  try {
+    const r = await fetch(`${API}/api/admin/users`, {credentials:"include", headers: authHeaders()});
+    const d = await r.json();
+    const users = d.users || [];
+    document.getElementById("s-users").textContent = users.length;
+
+    const tbody = document.getElementById("users-body");
+    if(!users.length) { tbody.innerHTML = '<tr><td colspan="6" class="loader">No users yet</td></tr>'; return; }
+
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td>
+          <div style="font-weight:600;font-size:11px">${u.name||"—"}</div>
+          <div style="font-size:9px;color:#3a5070;font-family:'JetBrains Mono',monospace">${u.email}</div>
+        </td>
+        <td><span class="badge badge-${u.plan||'free'}">${(u.plan||'free').toUpperCase()}</span></td>
+        <td class="r">${u.days_active||0}</td>
+        <td class="r cyan">${fmtSec(u.total_sec)}</td>
+        <td class="r amber">${u.total_ai_chats||0}</td>
+        <td class="r">
+          <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end">
+            <input class="limit-input" type="number" value="${u.ai_limit_day||2}" min="0" max="9999" id="lim-${u.id}"/>
+            <select class="plan-sel" id="plan-${u.id}">
+              <option value="free" ${(u.plan||'free')==='free'?'selected':''}>free</option>
+              <option value="premium" ${u.plan==='premium'?'selected':''}>premium</option>
+            </select>
+            <button class="save-btn" onclick="saveLimit(${u.id})">Save</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+  } catch(e) {
+    document.getElementById("users-body").innerHTML = `<tr><td colspan="6" class="loader" style="color:#ef4444">Error: ${e.message}</td></tr>`;
+  }
+}
+
+async function saveLimit(uid) {
+  const limit = parseInt(document.getElementById("lim-"+uid).value) || 2;
+  const plan  = document.getElementById("plan-"+uid).value;
+  try {
+    const r = await fetch(`${API}/api/admin/user/${uid}/limit`, {
+      method:"POST", credentials:"include", headers: authHeaders(),
+      body: JSON.stringify({limit, plan})
+    });
+    if(r.ok) {
+      const btn = document.querySelector(`button[onclick="saveLimit(${uid})"]`);
+      btn.textContent = "✓"; btn.style.color="#22c55e";
+      setTimeout(()=>{ btn.textContent="Save"; btn.style.color=""; }, 1500);
+    }
+  } catch(e) { alert("Error: "+e.message); }
+}
+
+async function loadTabTime() {
+  try {
+    const r = await fetch(`${API}/api/admin/tab-time`, {credentials:"include", headers: authHeaders()});
+    const d = await r.json();
+    const tabs = d.tabs || [];
+
+    // Update most active stat
+    if(tabs.length) {
+      document.getElementById("s-tab").textContent = tabs[0].tab_name;
+      const avgSec = Math.round(tabs.reduce((s,t)=>s+parseInt(t.avg_sec||0),0)/tabs.length);
+      document.getElementById("s-avg").textContent = fmtSec(avgSec);
+    }
+
+    // Table
+    const tbody = document.getElementById("tab-body");
+    if(!tabs.length) { tbody.innerHTML='<tr><td colspan="5" class="loader">No data yet</td></tr>'; return; }
+    const maxSec = Math.max(...tabs.map(t=>parseInt(t.total_sec||0)));
+    tbody.innerHTML = tabs.map(t => {
+      const pct = maxSec > 0 ? Math.round((parseInt(t.total_sec||0)/maxSec)*100) : 0;
+      const color = "#2563eb";
+      return `<tr>
+        <td>
+          <div>${t.tab_name}</div>
+          <div class="prog"><div class="prog-fill" style="width:${pct}%;background:${color}"></div></div>
+        </td>
+        <td class="r">${t.visits}</td>
+        <td class="r cyan">${Math.round(parseInt(t.total_sec||0)/60)}m</td>
+        <td class="r">${t.avg_sec}s</td>
+        <td class="r">${t.unique_users}</td>
+      </tr>`;
+    }).join("");
+
+    // Chart
+    const colors=["#2563eb","#22c55e","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#f97316","#8b5cf6","#10b981","#3b82f6","#fbbf24"];
+    if(tabChart) tabChart.destroy();
+    const ctx = document.getElementById("tab-chart").getContext("2d");
+    tabChart = new Chart(ctx, {
+      type:"bar",
+      data:{
+        labels: tabs.map(t=>t.tab_name),
+        datasets:[{
+          label:"Total Minutes",
+          data: tabs.map(t=>Math.round(parseInt(t.total_sec||0)/60)),
+          backgroundColor: tabs.map((_,i)=>colors[i%colors.length]+"bb"),
+          borderColor: tabs.map((_,i)=>colors[i%colors.length]),
+          borderWidth:1, borderRadius:4
+        }]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} min`}}},
+        scales:{
+          x:{grid:{color:"rgba(255,255,255,.04)"},ticks:{color:"#5a6f94",font:{size:9}}},
+          y:{grid:{color:"rgba(255,255,255,.04)"},ticks:{color:"#5a6f94",font:{size:9},callback:v=>v+"m"}}
+        }
+      }
+    });
+  } catch(e) {}
+}
+
+async function loadAI() {
+  try {
+    const r = await fetch(`${API}/api/admin/ai-today`, {credentials:"include", headers: authHeaders()});
+    const d = await r.json();
+    const rows = d.ai_usage || [];
+    const totalToday = rows.reduce((s,r)=>s+parseInt(r.chats_today||0),0);
+    document.getElementById("s-chats").textContent = totalToday;
+    document.getElementById("ai-date").textContent = new Date().toLocaleDateString("en-IN");
+
+    const tbody = document.getElementById("ai-body");
+    if(!rows.length) { tbody.innerHTML='<tr><td colspan="4" class="loader">No AI usage today</td></tr>'; return; }
+    tbody.innerHTML = rows.map(r => {
+      const used = parseInt(r.chats_today||0);
+      const limit = parseInt(r.ai_limit_day||2);
+      const rem = parseInt(r.remaining||0);
+      const pct = limit > 0 ? Math.min(100,Math.round((used/limit)*100)) : 0;
+      const col = pct>=100?"#ef4444":pct>=75?"#f59e0b":"#22c55e";
+      return `<tr>
+        <td>
+          <div style="font-weight:600;font-size:11px">${r.name||"—"}</div>
+          <div style="font-size:9px;color:#3a5070;font-family:'JetBrains Mono',monospace">${r.email}</div>
+        </td>
+        <td class="r" style="color:${col};font-weight:700;font-family:'JetBrains Mono',monospace">${used}</td>
+        <td class="r" style="color:#5a6f94;font-family:'JetBrains Mono',monospace">${limit}</td>
+        <td class="r" style="color:${rem===0?'#ef4444':'#22c55e'};font-family:'JetBrains Mono',monospace">${rem}</td>
+      </tr>`;
+    }).join("");
+  } catch(e) {}
+}
+
+async function loadDaily() {
+  try {
+    const r = await fetch(`${API}/api/admin/daily-active`, {credentials:"include", headers: authHeaders()});
+    const d = await r.json();
+    const rows = (d.daily || []).slice(0,15).reverse();
+    if(!rows.length) return;
+
+    if(dauChart) dauChart.destroy();
+    const ctx = document.getElementById("dau-chart").getContext("2d");
+    dauChart = new Chart(ctx, {
+      type:"line",
+      data:{
+        labels: rows.map(r=>r.day?.substring(0,10)||""),
+        datasets:[
+          {label:"Active Users",data:rows.map(r=>r.unique_users||0),borderColor:"#2563eb",backgroundColor:"rgba(37,99,235,.12)",fill:true,tension:.4,pointRadius:3,borderWidth:2},
+          {label:"Events",data:rows.map(r=>r.total_events||0),borderColor:"#22c55e",backgroundColor:"rgba(34,197,94,.08)",fill:true,tension:.4,pointRadius:3,borderWidth:2,yAxisID:"y1"}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:"#5a6f94",font:{size:10},boxWidth:10}},
+          tooltip:{backgroundColor:"rgba(8,12,20,.95)",titleColor:"#5a6f94",bodyColor:"#e2e8f4"}},
+        scales:{
+          x:{grid:{color:"rgba(255,255,255,.04)"},ticks:{color:"#5a6f94",font:{size:9}}},
+          y:{grid:{color:"rgba(255,255,255,.04)"},ticks:{color:"#5a6f94",font:{size:9}}},
+          y1:{position:"right",grid:{display:false},ticks:{color:"#22c55e",font:{size:9}}}
+        }
+      }
+    });
+  } catch(e) {}
+}
+
+async function doLogout() {
+  await fetch(`${API}/api/auth/logout`, {method:"POST", credentials:"include", headers: authHeaders()});
+  localStorage.removeItem("td_token"); localStorage.removeItem("td_user");
+  window.location.href = "/login";
+}
+
+async function loadAll() {
+  document.getElementById("last-updated").textContent = "Refreshing…";
+  await Promise.all([loadUsers(), loadTabTime(), loadAI(), loadDaily()]);
+  document.getElementById("last-updated").textContent = "Updated: " + new Date().toLocaleTimeString("en-IN");
+}
+
+loadMe().then(loadAll);
+setInterval(loadAll, 60000); // Auto-refresh every minute
+</script>
+</body>
+</html>

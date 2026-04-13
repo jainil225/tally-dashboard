@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login · Tally Prime Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:linear-gradient(135deg,#060912 0%,#0a1628 40%,#070e1f 100%);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  font-family:'Outfit',sans-serif;color:#e2e8f4;
+  background-attachment:fixed;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 20% 50%,rgba(37,99,235,.07) 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 20%,rgba(212,160,23,.05) 0%,transparent 50%);
+}
+.wrap{width:460px;max-width:96vw;position:relative;z-index:1;}
+
+/* Brand */
+.brand{text-align:center;margin-bottom:24px;}
+.brand-logo{
+  font-family:'Space Grotesk',sans-serif;font-size:36px;font-weight:700;letter-spacing:-1px;
+  background:linear-gradient(135deg,#60a5fa 0%,#d4a017 60%,#fbbf24 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.brand-sub{font-size:10px;color:#3a5070;letter-spacing:4px;margin-top:2px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}
+
+/* Card */
+.card{
+  background:rgba(14,20,32,.97);border:1px solid #1c2d4a;border-radius:8px;
+  overflow:hidden;box-shadow:0 0 80px rgba(37,99,235,.12),0 40px 80px rgba(0,0,0,.5);
+}
+.card-header{
+  background:linear-gradient(90deg,#1e3a5f,#0d2040);
+  padding:8px 16px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid #243a5e;
+}
+.card-title{font-size:10px;font-weight:700;color:#8ab0d8;letter-spacing:.08em;font-family:'JetBrains Mono',monospace;}
+.dots{display:flex;gap:5px;}
+.dot{width:9px;height:9px;border-radius:50%;}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid #1c2d4a;}
+.tab{
+  flex:1;padding:12px;text-align:center;font-size:12px;font-weight:600;
+  color:#3a5070;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;
+  font-family:'Space Grotesk',sans-serif;letter-spacing:.02em;
+}
+.tab.active{color:#60a5fa;border-bottom-color:#2563eb;background:rgba(37,99,235,.05);}
+.tab:hover:not(.active){color:#8ab0d8;background:rgba(255,255,255,.02);}
+
+/* Body */
+.card-body{padding:24px;}
+.form-group{margin-bottom:18px;}
+label{display:block;font-size:10px;color:#5a6f94;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
+input{
+  width:100%;padding:10px 14px;background:#080c14;border:1px solid #1c2d4a;
+  border-radius:5px;color:#e2e8f4;font-size:13px;font-family:'Outfit',sans-serif;
+  outline:none;transition:.2s;
+}
+input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+input::placeholder{color:#2a3a55;}
+
+.btn{
+  width:100%;padding:12px;background:linear-gradient(90deg,#2563eb,#1d4ed8);
+  border:none;border-radius:5px;color:#fff;font-size:13px;font-weight:700;
+  font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:.2s;letter-spacing:.02em;
+  margin-top:4px;
+}
+.btn:hover{opacity:.88;transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+.divider{text-align:center;margin:16px 0;position:relative;}
+.divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:#1c2d4a;}
+.divider span{position:relative;background:rgba(14,20,32,.97);padding:0 12px;font-size:10px;color:#3a5070;font-family:'JetBrains Mono',monospace;}
+
+/* Error / success alerts */
+.alert{
+  padding:10px 14px;border-radius:5px;font-size:12px;margin-bottom:16px;
+  font-family:'Space Grotesk',sans-serif;display:none;
+}
+.alert.err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:#f87171;}
+.alert.ok{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);color:#4ade80;}
+
+/* Password strength */
+.pw-strength{margin-top:5px;height:3px;border-radius:2px;background:#1c2d4a;overflow:hidden;}
+.pw-strength-bar{height:100%;border-radius:2px;transition:.3s;width:0;}
+
+/* Info row at bottom */
+.info-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #1a2d4a;
+  border-radius:4px;margin-top:18px;overflow:hidden;
+}
+.info-cell{padding:8px 12px;border-right:1px solid #1a2d4a;}
+.info-cell:last-child{border-right:none;}
+.info-lbl{font-size:8px;color:#2a3a55;text-transform:uppercase;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;margin-bottom:2px;}
+.info-val{font-size:11px;color:#4a6a8a;font-family:'JetBrains Mono',monospace;}
+
+/* Floating particles */
+.particle{
+  position:fixed;border-radius:50%;pointer-events:none;opacity:0;
+  animation:float-up linear infinite;
+}
+@keyframes float-up{0%{opacity:0;transform:translateY(0) scale(0);}10%{opacity:.4;}90%{opacity:.1;}100%{opacity:0;transform:translateY(-100vh) scale(1);}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-logo">Tally Prime</div>
+    <div class="brand-sub">Financial Dashboard · BizSage Edition</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">AUTHENTICATION</span>
+      <div class="dots">
+        <div class="dot" style="background:#ff5f57"></div>
+        <div class="dot" style="background:#febc2e"></div>
+        <div class="dot" style="background:#28c840"></div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" id="tab-login" onclick="showTab('login')">🔐 Sign In</div>
+      <div class="tab" id="tab-register" onclick="showTab('register')">✨ Register</div>
+    </div>
+
+    <div class="card-body">
+      <div class="alert err" id="alert-err"></div>
+      <div class="alert ok"  id="alert-ok"></div>
+
+      <!-- LOGIN FORM -->
+      <div id="form-login">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="l-email" placeholder="you@company.com" autocomplete="email"/>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password"
+                 onkeydown="if(event.key==='Enter')doLogin()"/>
+        </div>
+        <button class="btn" id="login-btn" onclick="doLogin()">Sign In →</button>
+
+        <div class="divider"><span>OR</span></div>
+        <div style="text-align:center;font-size:11px;color:#3a5070;">
+          Don't have an account?
+          <span style="color:#60a5fa;cursor:pointer;font-weight:600;" onclick="showTab('register')">Register here</span>
+        </div>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="form-register" style="display:none">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="r-name" placeholder="Rajesh Kumar"/>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="r-email" placeholder="you@company.com" autocomplete="email"/>
+        </div>
+        <div class="form-group">
+          <label>Password <span style="color:#3a5070;font-size:9px">(min 6 chars)</span></label>
+          <input type="password" id="r-pass" placeholder="Choose a strong password"
+                 oninput="checkStrength(this.value)"
+                 onkeydown="if(event.key==='Enter')doRegister()"/>
+          <div class="pw-strength"><div class="pw-strength-bar" id="pw-bar"></div></div>
+        </div>
+        <button class="btn" id="reg-btn" onclick="doRegister()">Create Account →</button>
+
+        <div class="divider"><span>OR</span></div>
+        <div style="text-align:center;font-size:11px;color:#3a5070;">
+          Already registered?
+          <span style="color:#60a5fa;cursor:pointer;font-weight:600;" onclick="showTab('login')">Sign in</span>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-cell">
+          <div class="info-lbl">Free Plan</div>
+          <div class="info-val">2 AI chats/day</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-lbl">Premium</div>
+          <div class="info-val">Unlimited AI · ₹5k/yr</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "";
+
+function showTab(tab) {
+  document.getElementById("tab-login").classList.toggle("active", tab==="login");
+  document.getElementById("tab-register").classList.toggle("active", tab==="register");
+  document.getElementById("form-login").style.display    = tab==="login" ? "" : "none";
+  document.getElementById("form-register").style.display = tab==="register" ? "" : "none";
+  clearAlerts();
+}
+
+function showErr(msg) {
+  const el = document.getElementById("alert-err");
+  el.textContent = "⚠ " + msg;
+  el.style.display = "block";
+  document.getElementById("alert-ok").style.display = "none";
+}
+function showOk(msg) {
+  const el = document.getElementById("alert-ok");
+  el.textContent = "✓ " + msg;
+  el.style.display = "block";
+  document.getElementById("alert-err").style.display = "none";
+}
+function clearAlerts() {
+  document.getElementById("alert-err").style.display = "none";
+  document.getElementById("alert-ok").style.display = "none";
+}
+
+function checkStrength(pw) {
+  const bar = document.getElementById("pw-bar");
+  let score = 0;
+  if(pw.length >= 6)  score++;
+  if(pw.length >= 10) score++;
+  if(/[A-Z]/.test(pw)) score++;
+  if(/[0-9]/.test(pw)) score++;
+  if(/[^A-Za-z0-9]/.test(pw)) score++;
+  const colors = ["#ef4444","#f59e0b","#f59e0b","#22c55e","#22c55e"];
+  bar.style.width = (score * 20) + "%";
+  bar.style.background = colors[Math.max(0,score-1)] || "#ef4444";
+}
+
+async function doLogin() {
+  clearAlerts();
+  const email = document.getElementById("l-email").value.trim();
+  const pass  = document.getElementById("l-pass").value;
+  if(!email || !pass) { showErr("Please enter email and password."); return; }
+
+  const btn = document.getElementById("login-btn");
+  btn.disabled = true; btn.textContent = "Signing in…";
+
+  try {
+    const r = await fetch(`${API}/api/auth/login`, {
+      method: "POST",
+      credentials: "include",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({email, password: pass})
+    });
+    const d = await r.json();
+    if(!r.ok) { showErr(d.error || "Login failed"); return; }
+    // Store token for Authorization header fallback
+    localStorage.setItem("td_token", d.token);
+    localStorage.setItem("td_user", JSON.stringify(d.user));
+    window.location.href = "/";
+  } catch(e) {
+    showErr("Network error: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Sign In →";
+  }
+}
+
+async function doRegister() {
+  clearAlerts();
+  const name  = document.getElementById("r-name").value.trim();
+  const email = document.getElementById("r-email").value.trim();
+  const pass  = document.getElementById("r-pass").value;
+  if(!name || !email || !pass) { showErr("All fields are required."); return; }
+  if(pass.length < 6) { showErr("Password must be at least 6 characters."); return; }
+
+  const btn = document.getElementById("reg-btn");
+  btn.disabled = true; btn.textContent = "Creating account…";
+
+  try {
+    const r = await fetch(`${API}/api/auth/register`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({name, email, password: pass})
+    });
+    const d = await r.json();
+    if(!r.ok) { showErr(d.error || "Registration failed"); return; }
+    showOk("Account created! Signing you in…");
+    // Auto login after register
+    setTimeout(async () => {
+      document.getElementById("l-email").value = email;
+      document.getElementById("l-pass").value  = pass;
+      showTab("login");
+      await doLogin();
+    }, 1000);
+  } catch(e) {
+    showErr("Network error: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Create Account →";
+  }
+}
+
+// Check if already logged in
+(async () => {
+  try {
+    const r = await fetch(`${API}/api/auth/me`, {credentials:"include",
+      headers: localStorage.getItem("td_token") ? {"Authorization":"Bearer "+localStorage.getItem("td_token")} : {}});
+    if(r.ok) window.location.href = "/";
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>
