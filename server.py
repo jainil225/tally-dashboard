@@ -40,7 +40,7 @@ CORS(app, supports_credentials=True)
 # ══════════════════════════════════════════════════════════════════════════
 
 APP_DATABASE_URL = os.getenv("APP_DATABASE_URL",
-    "postgresql://neondb_owner:npg_ovpfE3WcBid0@ep-proud-dew-anl6spm4-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    "postgresql://neondb_owner:npg_AkLf6Up4aNVl@ep-misty-salad-anienhm3-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 )
 
 TALLY_DATABASE_URL = os.getenv("TALLY_DATABASE_URL",
